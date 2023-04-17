@@ -1,0 +1,19 @@
+syntax="proto3"
+
+package mcmultiplayer;
+
+enum HostStatus {
+	HOST_ACTIVE=1;
+	RUNNING_MULTIPLAYER=2;
+	SHUTTNING_DOWN=3;
+}
+
+
+message HostStatusUpdate {
+	HostStatus status = 1;
+	repeated log = 1;
+}
+
+service HostRegistry {
+	rpc HostStatusUpdates(stream HostStatus) returns ();
+}
