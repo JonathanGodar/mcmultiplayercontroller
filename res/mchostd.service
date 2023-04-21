@@ -1,0 +1,14 @@
+[Unit]
+Description=Systemd service for mchostd, part of the mcmultiplayercontroller "ecosystem"
+Requires=network.target
+
+[Service]
+User=jonathan
+ExecStart=/usr/local/bin/mchostd
+
+# Set the environment variables "Foo=bar"
+Environment=""
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
