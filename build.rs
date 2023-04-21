@@ -1,3 +1,5 @@
-fn main() {
-    tonic_build::compile_protos("mcmultiplayer").unwrap_or_else(|e| println!("Failed to compile protobuffer: {:?}", e));
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    tonic_build::compile_protos("proto/controllerp.proto")?;
+
+    Ok(())
 }

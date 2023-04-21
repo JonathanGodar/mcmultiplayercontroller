@@ -1,0 +1,42 @@
+syntax="proto3";
+import "google/protobuf/empty.proto";
+
+package controllerp;
+
+
+service Basics {
+	rpc SayHello(HelloRequest) returns (HelloReply);
+	rpc OnHostStartup(google.protobuf.Empty) returns (stream ControllerCommands);
+	// rpc SetHostStatus() returns (google.protobuf.Empty)
+}
+
+
+enum SetControllerStatusRequest {
+	Online = 0;
+	Running = 1;
+	Offline = 2;
+}
+
+enum Command {
+		StartServer = 0;
+		HeartBeat = 1;
+}
+
+message ControllerCommands {
+	uint32 id = 1;
+	Command command = 2;
+}
+
+message CommandReply {
+		uint32 command_id = 1;
+		optional string msg = 2;
+}
+
+
+message HelloRequest {
+	string name = 1;
+}
+
+message HelloReply {
+	string message = 1;
+}

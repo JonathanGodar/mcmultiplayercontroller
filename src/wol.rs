@@ -1,10 +1,30 @@
-use tokio::net::UdpSocket;
-pub async fn wake_on_lan(mac_addr: MacAddr) -> Result<(), Box<dyn std::error::Error>> {
+use std::time::Duration;
 
+use futures::FutureExt;
+use tokio::{net::UdpSocket, time::sleep, select};
+
+pub async fn try_until_with_timeout(mac_addr: MacAddr, condition: impl Fn() -> bool, timeout: Duration) -> Result<(), ()>{
+    send(mac_addr).await.unwrap();
+    let mut timeout = sleep(timeout).boxed();
+    while!condition() {
+        let retry_in = sleep(Duration::from_secs(1));
+        select! {
+            _ = retry_in => {
+                send(mac_addr).await.unwrap();
+            }
+            _ = &mut timeout => {
+                return Err(());
+            }
+        }
+
+    }
+
+    Ok(())
+}
+
+pub async fn send(mac_addr: MacAddr) -> Result<(), Box<dyn std::error::Error>> {
     let header = [255_u8; 6];
-    // let mut mac_repeats = [0_u8; 6 * 16];
     let mac_repeats: [u8; 6 * 16]  = mac_addr.0.into_iter().cycle().take(6 * 16).collect::<Vec<_>>().try_into().unwrap();
-    // let payload = [header, mac_repeats].concat();
 
     let payload: [u8; 102] = {
         let mut payload = [0; 102];
@@ -18,14 +38,15 @@ pub async fn wake_on_lan(mac_addr: MacAddr) -> Result<(), Box<dyn std::error::Er
     println!("{}", payload.len());
 
     let socket = UdpSocket::bind("0.0.0.0:0").await?;
+    println!("Sending wol req");
     socket.send_to(&payload, "0.0.0.0:9").await?;
 
     Ok(())
 }
 
 
+#[derive(Clone, Copy)]
 pub struct MacAddr(pub [u8; 6]);
-
 
 impl From<&str> for MacAddr {
     fn from(value: &str) -> MacAddr {
@@ -33,7 +54,6 @@ impl From<&str> for MacAddr {
         value.split(":").into_iter().enumerate().for_each(
             |(idx, part)| {
                 if part.len() != 2 {
-                    println!("aaaa: {}", part);
                     panic!("shit");
                 } else {
                     mac_addr.0[idx] = u8::from_str_radix(&part[0..2], 16).unwrap();
