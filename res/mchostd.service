@@ -4,9 +4,9 @@ Requires=network.target
 
 [Service]
 User=jonathan
-ExecStart=/usr/local/bin/mchostd
+ExecStart=/usr/bin/mchostd
 
-# Set the environment variables "Foo=bar"
+# Set the required environment variable
 Environment=""
 Restart=on-failure
 
