@@ -1,7 +1,7 @@
 # pkgname, pkgver, pkgrel, and arch
 pkgname=mchost
 pkgver=0.1.1
-pkgrel=4
+pkgrel=5
 pkgdesc="Installs the mchost command line utility and the mchostd into systemd"
 arch=('any')
 

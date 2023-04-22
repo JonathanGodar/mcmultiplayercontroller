@@ -22,7 +22,12 @@ lazy_static! {
 }
 
 async fn auto_power_off_watcher(shutdown: CancellationToken, tx: Arc<Mutex<watch::Sender<bool>>>){
-    let listener = UnixListener::bind(mchost_unix_stream::PATH).unwrap(); // .expect("Could not bind to stream.");
+    // TODO Move to end of function and make the application gracefully exit.
+    if let Err(err) = tokio::fs::remove_file(mchost_unix_stream::PATH).await {
+        println!("Could not remove {} because {}", mchost_unix_stream::PATH, err);
+    }
+
+    let listener = UnixListener::bind(mchost_unix_stream::PATH).unwrap();
     loop {
         select! {
             accepted = listener.accept() =>  {
@@ -55,8 +60,7 @@ async fn auto_power_off_watcher(shutdown: CancellationToken, tx: Arc<Mutex<watch
             }
         }
     }
-
-    tokio::fs::remove_file(mchost_unix_stream::PATH).await.unwrap();
+    _ = tokio::fs::remove_file(mchost_unix_stream::PATH).await;
 }
 
 #[tokio::main]
