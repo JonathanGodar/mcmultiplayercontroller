@@ -61,6 +61,7 @@ async fn auto_power_off_watcher(shutdown: CancellationToken, tx: Arc<Mutex<watch
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>>{
+    _ = dotenvy::dotenv();
     let shutdown = CancellationToken::new();
 
     let (auto_power_off_tx, auto_power_off_rx) = watch::channel(false);
@@ -68,7 +69,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>>{
     let handle = tokio::spawn(auto_power_off_watcher(shutdown.clone(), auto_power_off_tx.clone()));
 
     // TODO tokio::spawn(handle_command);
-    let mut client = BasicsClient::connect("http://[::1]:50051").await?;
+    let mut client = BasicsClient::connect(std::env::var("controller_address").expect("controller_address env var must be set")).await?;
     let response  = client.on_host_startup(()).await;
     match response {
         Ok(response) => {

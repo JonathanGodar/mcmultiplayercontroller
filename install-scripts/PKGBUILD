@@ -1,0 +1,37 @@
+# pkgname, pkgver, pkgrel, and arch
+pkgname=mchost
+pkgver=0.1.1
+pkgrel=4
+pkgdesc="Installs the mchost command line utility and the mchostd into systemd"
+arch=('any')
+
+# makedepends=("tar")
+# makedepends=('unzip' 'yasm' 'nasm' 'clang' 'zip' 'pkgconf' 'make' 'git' 'cmake' 'gcc' 'curl' 'wget' 'rust')
+# makedepends=("rust" "git")
+
+# install=${pkgname}.install
+source=(
+	"${pkgname}-${pkgver}::https://github.com/JonathanGodar/mcmultiplayercontroller/archive/refs/tags/${pkgver}.tar.gz"
+)
+
+sha256sums=(
+	"SKIP"
+)
+
+provides=("mchost" "mchostd")
+
+build() {
+		# tar -xf "${srcdir}/${pkgname}-${pkgver}/"
+		cd "${srcdir}/mcmultiplayercontroller-${pkgver}/"
+    cargo build --release --bin mchostd
+    cargo build --release --bin mchost
+}
+
+package(){
+		install -Dm0755 "${srcdir}/mcmultiplayercontroller-${pkgver}/target/release/${pkgname}d" "${pkgdir}/usr/bin/${pkgname}d"
+		install -Dm0755 "${srcdir}/mcmultiplayercontroller-${pkgver}/target/release/${pkgname}d" "${pkgdir}/usr/bin/${pkgname}"
+
+		install -Dm0666 "${srcdir}/mcmultiplayercontroller-${pkgver}/res/mchostd.service" "${pkgdir}/etc/systemd/system/${pkgname}d.service"
+
+		# install -Dm0644 "${srcdir}/mcmultiplayercontroller-${pkgver}/${pkgname}d.service" "${pkgdir}/etc/systemd/user/${pkgname}d.service"
+}
