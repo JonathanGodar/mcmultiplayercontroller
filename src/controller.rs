@@ -1,4 +1,4 @@
-use std::{time::Duration, pin::Pin, cell::RefCell, sync::Arc};
+use std::{time::Duration, pin::Pin, cell::RefCell, sync::Arc, env};
 use futures::{Stream, future::select};
 
 use controllerp::basics_server::Basics;
@@ -121,12 +121,14 @@ impl Basics for MyBasics {
 
 
 pub async fn start_tonic(command_queue: mpsc::Receiver<controllerp::Command>, status_updater: watch::Sender<MCHostStatus>) -> Result<(), Box<dyn std::error::Error>> {
-    let addr = "[::1]:50051".parse()?;
+    let addr = env::var("listen_address").expect("Env var listen_address must be set").parse()?;
 
     let service = MyBasics {
         command_rx: Arc::new(command_queue.into()),
         status_updater: Arc::new(status_updater.into()),
     };
+
+    println!("Gprc listening on: {}", addr);
 
     Server::builder().tcp_keepalive(Some(Duration::from_secs(59))).add_service(BasicsServer::new(service)).serve(addr).await?;
     Ok(())
