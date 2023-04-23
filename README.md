@@ -14,7 +14,7 @@ The project contains three subprogrammes:
 ## Environment variables
 Environment variables are loaded in from a .env file in the root of the project. Environment variables that are set before running the program take precedence over variables set in the .env file.
 
-## Discord_dot
+## discord_dot
 Contains both a gRPC server for sending commands to the minecraft server host and a discord bot to recieve commands from the user.
 
 ## Running
@@ -34,6 +34,14 @@ listen_address # Which address the gPRC server should bind to
 When started it tries to connect to the gRPC server of the discord bot.
 
 It will automatically stop the server if no one has been on the server for 30s.
+### Installation
+mchost and mchostd can be installed via an arch PKGBUILD, however the mchostd currently does not load config files from a specific directory. So unless you want to have a .env file in /usr/bin you have to modify the file /etc/systemd/system/mchostd.service and add your environment variables in the `Environment=""` part of the service.
+
+The package build does not list dependencies so you have to make sure you have rust and git installed on your system.
+```bash
+$ cd ./install-scripts
+$ makepkg -i
+```
 
 ### Running
 ```bash
@@ -43,4 +51,10 @@ $ cargo run --bin mchostd
 ### Environment variables
 ```.env
 controller_address # The address of the discord_bot gRPC server, eg. http://192.168.1.223:50051
+broadcast_address # The address to broadcast the WOL packet on, eg. 255.255.255.255:9
+local_wol_send_address # The address WOL packets are sent from, eg. 192.168.1.223:0
 ```
+
+## mchost
+CLI util to set settings in the mchostd. Currently requires the dameon to be active. Settings set are not persistent. Use `mchost help` to se command options. 
+

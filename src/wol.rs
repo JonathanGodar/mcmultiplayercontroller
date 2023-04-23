@@ -24,27 +24,9 @@ pub async fn try_until_with_timeout(mac_addr: MacAddr, condition: impl Fn() -> b
 
 pub async fn send(mac_addr: MacAddr) -> Result<(), Box<dyn std::error::Error>> {
     println!("sending packet :D");
-    wake_on_lan::MagicPacket::new(&mac_addr.0).send_to(env::var("broadcast_address").unwrap(), env::var("local_wol_send_addr").unwrap())?;
+    // TODO make async
+    wake_on_lan::MagicPacket::new(&mac_addr.0).send_to(env::var("broadcast_address").unwrap(), env::var("local_wol_send_address").unwrap())?;
     Ok(())
-    // let header = [255_u8; 6];
-    // let mac_repeats: [u8; 6 * 16]  = mac_addr.0.into_iter().cycle().take(6 * 16).collect::<Vec<_>>().try_into().unwrap();
-
-    // let payload: [u8; 102] = {
-    //     let mut payload = [0; 102];
-    //     let (one, two) = payload.split_at_mut(header.len());
-    //     one.copy_from_slice(&header);
-    //     two.copy_from_slice(&mac_repeats);
-    //     payload
-    // };
-
-    // println!("{:x?}", payload);
-    // println!("{}", payload.len());
-
-    // let socket = UdpSocket::bind("192.168.1.223:0").await?;
-    // println!("Sending wol req");
-    // socket.send_to(&payload, "225.225.225.225:9").await?;
-
-    // Ok(())
 }
 
 
