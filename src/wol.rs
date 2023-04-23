@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{time::Duration, env};
 
 use futures::FutureExt;
 use tokio::{net::UdpSocket, time::sleep, select};
@@ -24,7 +24,7 @@ pub async fn try_until_with_timeout(mac_addr: MacAddr, condition: impl Fn() -> b
 
 pub async fn send(mac_addr: MacAddr) -> Result<(), Box<dyn std::error::Error>> {
     println!("sending packet :D");
-    wake_on_lan::MagicPacket::new(&mac_addr.0).send_to("255.255.255.255:9", "192.168.1.223:0")?;
+    wake_on_lan::MagicPacket::new(&mac_addr.0).send_to(env::var("broadcast_address").unwrap(), env::var("local_wol_send_addr").unwrap())?;
     Ok(())
     // let header = [255_u8; 6];
     // let mac_repeats: [u8; 6 * 16]  = mac_addr.0.into_iter().cycle().take(6 * 16).collect::<Vec<_>>().try_into().unwrap();
