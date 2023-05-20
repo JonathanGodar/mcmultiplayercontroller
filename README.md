@@ -1,9 +1,9 @@
 # McMultiplayerController
 ## Description
 This was a project intended for my friends to be able to start my minecraft server. It also served as a way for me to learn async Rust and gRPC.
-The programme is built so that a less powerhungry computer can recieve server start commands and then start up a more powerfull host that can run a minecraft server.
+The program is built so that a less powerhungry computer can recieve server start commands and then start up a more powerful host that can run a minecraft server.
 
-For this small personal project bugs were acceptable and the project just needed to be done as soon as possible, since I was going away for a while and would not be able to finish the project for a couple of weeks. Thus the code is not refactored and the code is, at some places horribly nested to be able to not worry about fighting the borrow checker.
+For this small personal project bugs were acceptable and the project just needed to be done as soon as possible. Since I was going away a couple of weeks. Thus the code is not refactored and the code is, in some places, horribly nested since it let me think less about the borrowing rules. 
 
 ## Structure
 The project contains three subprogrammes:
