@@ -7,7 +7,7 @@ package controllerp;
 service Basics {
 	rpc SayHello(HelloRequest) returns (HelloReply);
 	rpc OnHostStartup(google.protobuf.Empty) returns (stream ControllerCommands);
-	// rpc SetHostStatus() returns (google.protobuf.Empty)
+	// rpc GetServer(google.protobuf.Empty ) returns (ServerConfigs);
 }
 
 
@@ -20,12 +20,23 @@ enum SetControllerStatusRequest {
 enum Command {
 		StartServer = 0;
 		HeartBeat = 1;
+		RefreshServers = 2;
 }
 
 message ControllerCommands {
 	uint32 id = 1;
 	Command command = 2;
 }
+
+// message ServerConfigs {
+//	repeated ServerConfigs server_configs = 1;
+// }
+
+// message ServerConfig {
+	// uint32 id = 1;
+	// string name = 2;
+	// string server_software = 3; 
+// }
 
 message CommandReply {
 		uint32 command_id = 1;

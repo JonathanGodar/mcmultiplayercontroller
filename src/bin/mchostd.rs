@@ -1,17 +1,29 @@
-use std::{env, io::{Stdout, BufWriter, Write}, process::Stdio, time::Duration, alloc::System, sync::Arc};
+use std::{
+    alloc::System,
+    env,
+    io::{BufWriter, Stdout, Write},
+    process::Stdio,
+    sync::Arc,
+    time::Duration,
+};
 
-use prost::encoding::bool;
-use regex::Regex;
-use tokio_util::sync::CancellationToken;
 use crate::controllerp::{basics_client::BasicsClient, HelloRequest};
 use controllerp::{Command, ControllerCommands};
-use tokio::{process, io::{BufReader, AsyncBufReadExt, AsyncWrite, AsyncWriteExt}, select, net::UnixListener};
 use lazy_static::lazy_static;
+use mcmultiplayercontroller::mchost::constants::{
+    CONTROLLER_ADDRESS_ENV_NAME, MCHOSTD_UNIX_PIPE_PATH,
+};
+use prost::encoding::bool;
+use regex::Regex;
 use std::sync::Mutex;
 use tokio::sync::watch;
+use tokio::{
+    io::{AsyncBufReadExt, AsyncWrite, AsyncWriteExt, BufReader},
+    net::UnixListener,
+    process, select,
+};
 use tokio_stream::StreamExt;
-
-mod mchost_unix_stream;
+use tokio_util::sync::CancellationToken;
 
 pub mod controllerp {
     tonic::include_proto!("controllerp");
@@ -21,20 +33,21 @@ lazy_static! {
     static ref SERVER_RUNNING: Mutex<bool> = Mutex::new(false);
 }
 
-async fn auto_power_off_watcher(shutdown: CancellationToken, tx: Arc<Mutex<watch::Sender<bool>>>){
+async fn auto_power_off_watcher(shutdown: CancellationToken, tx: Arc<Mutex<watch::Sender<bool>>>) {
     // TODO Move to end of function and make the application gracefully exit.
-    if let Err(err) = tokio::fs::remove_file(mchost_unix_stream::PATH).await {
-        println!("Could not remove {} because {}", mchost_unix_stream::PATH, err);
+    if let Err(err) = tokio::fs::remove_file(MCHOSTD_UNIX_PIPE_PATH).await {
+        println!(
+            "Could not remove {} because {}",
+            MCHOSTD_UNIX_PIPE_PATH, err
+        );
     }
 
-    let listener = UnixListener::bind(mchost_unix_stream::PATH).unwrap();
+    let listener = UnixListener::bind(MCHOSTD_UNIX_PIPE_PATH).unwrap();
     loop {
         select! {
             accepted = listener.accept() =>  {
                 match accepted {
                     Ok((stream, _)) => {
-                        // TODO Make it able to recieve shutdown signal here as well
-                        stream.readable().await.unwrap();
                         let mut buf = vec![];
                         stream.try_read_buf(&mut buf).unwrap();
                         match std::str::from_utf8(&buf).unwrap() {
@@ -60,21 +73,33 @@ async fn auto_power_off_watcher(shutdown: CancellationToken, tx: Arc<Mutex<watch
             }
         }
     }
-    _ = tokio::fs::remove_file(mchost_unix_stream::PATH).await;
+    _ = tokio::fs::remove_file(MCHOSTD_UNIX_PIPE_PATH).await;
 }
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>>{
-    _ = dotenvy::dotenv();
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // TODO Remove unwrap
+    dotenvy::dotenv().unwrap();
     let shutdown = CancellationToken::new();
 
     let (auto_power_off_tx, auto_power_off_rx) = watch::channel(false);
     let auto_power_off_tx = Arc::new(Mutex::new(auto_power_off_tx));
-    let handle = tokio::spawn(auto_power_off_watcher(shutdown.clone(), auto_power_off_tx.clone()));
+    let handle = tokio::spawn(auto_power_off_watcher(
+        shutdown.clone(),
+        auto_power_off_tx.clone(),
+    ));
 
+    let controller_address =
+        std::env::var(CONTROLLER_ADDRESS_ENV_NAME).expect("controller_address env var must be set");
     // TODO tokio::spawn(handle_command);
-    let mut client = BasicsClient::connect(std::env::var("controller_address").expect("controller_address env var must be set")).await?;
-    let response  = client.on_host_startup(()).await;
+    let mut client = BasicsClient::connect(controller_address.clone())
+        .await
+        .map_err(|e| {
+            println!("Could not connect to: {}", controller_address);
+            return e;
+        })?;
+
+    let response = client.on_host_startup(()).await;
     match response {
         Ok(response) => {
             let mut stream = response.into_inner();
@@ -91,7 +116,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>>{
                                         auto_power_off_tx.lock().unwrap().send(true).unwrap();
                                     }
                                     handle_command(command, auto_power_off_rx.clone()).await;
-                                }, 
+                                },
                                 Err(_) => {
                                     println!("Error reading response");
                                 }
@@ -101,7 +126,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>>{
 
                 }
             }
-        },
+        }
         Err(err) => {
             println!("Could not connect to stream {}", err);
         }
@@ -113,9 +138,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>>{
     Ok(())
 }
 
-
 async fn handle_start_server(auto_shutdown: watch::Receiver<bool>) {
-
     match SERVER_RUNNING.lock() {
         Ok(mut lock) => {
             if *lock {
@@ -125,16 +148,28 @@ async fn handle_start_server(auto_shutdown: watch::Receiver<bool>) {
 
             *lock = true;
         }
-        Err(_) => {
-        }
+        Err(_) => {}
     }
 
-    let mut child = process::Command::new("java").current_dir("/home/jonathan/minecraft/1.19.4/").arg("-jar").arg("server.jar")
-        .stdout(Stdio::piped()).stdin(Stdio::piped()).kill_on_drop(true).spawn().unwrap();
+    let mut child = process::Command::new("java")
+        .current_dir("/home/jonathan/minecraft/1.19.4/")
+        .arg("-jar")
+        .arg("server.jar")
+        .stdout(Stdio::piped())
+        .stdin(Stdio::piped())
+        .kill_on_drop(true)
+        .spawn()
+        .unwrap();
 
-    let stdout = child.stdout.take().expect("Mc process did not have a stdout handle"); 
+    let stdout = child
+        .stdout
+        .take()
+        .expect("Mc process did not have a stdout handle");
     let mut stdout_reader = BufReader::new(stdout).lines();
-    let mut stdin = child.stdin.take().expect("Mc process did not have a stdin handle");
+    let mut stdin = child
+        .stdin
+        .take()
+        .expect("Mc process did not have a stdin handle");
 
     let mut player_count = 0;
 
@@ -173,14 +208,12 @@ async fn handle_start_server(auto_shutdown: watch::Receiver<bool>) {
         }
     }
 
-
     println!("Stopping server");
     _ = stdin.write("stop\r\n".as_bytes()).await;
     // _ = stdin.flush().await;
 
     println!("Awainting child");
     child.wait().await.unwrap();
-
 
     println!("shut down?");
     *SERVER_RUNNING.lock().unwrap() = false;
@@ -200,7 +233,7 @@ fn update_player_count(mc_output_line: &String, player_count: &mut u32) -> bool 
     if join_re.is_match(&mc_output_line) {
         *player_count += 1;
         return true;
-    } 
+    }
 
     if leave_re.is_match(&mc_output_line) {
         *player_count -= 1;
@@ -210,12 +243,17 @@ fn update_player_count(mc_output_line: &String, player_count: &mut u32) -> bool 
     return false;
 }
 
-
-async fn handle_command(controller_command: ControllerCommands, auto_shutdown: watch::Receiver<bool>) {
+async fn handle_command(
+    controller_command: ControllerCommands,
+    auto_shutdown: watch::Receiver<bool>,
+) {
     match Command::from_i32(controller_command.command).unwrap() {
         Command::StartServer => {
             handle_start_server(auto_shutdown).await;
         }
         Command::HeartBeat => {}
+        Command::RefreshServers => {
+            todo!()
+        }
     }
 }

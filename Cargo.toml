@@ -23,18 +23,19 @@ regex = "1.7.3"
 lazy_static = "1.4.0"
 tokio-util = "0.7.7"
 wake-on-lan = "0.2.0"
+async-trait = "0.1.68"
 
 [build-dependencies]
 tonic-build = "0.9.1"
 
-[[bin]]
-name="discord_bot"
-path="src/discord_bot.rs"
+# [[bin]]
+# name="orchestrator"
+# path="src/orchestrator.rs"
 
-[[bin]]
-name="mchostd"
-path="src/mchostd.rs"
+# [[bin]]
+# name="mchostd"
+# path="src/mchostd.rs"
 
-[[bin]]
-name="mchost"
-path="src/mchost.rs"
+# [[bin]]
+# name="mchost"
+# path="src/mchost.rs"
