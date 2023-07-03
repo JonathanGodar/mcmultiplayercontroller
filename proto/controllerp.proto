@@ -42,7 +42,7 @@ message ControllerCommands {
 
 message CommandReply {
 		uint32 command_id = 1;
-		optional string msg = 2;
+		string msg = 2;
 }
 
 
