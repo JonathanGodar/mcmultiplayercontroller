@@ -256,5 +256,6 @@ async fn handle_command(
         Command::RefreshServers => {
             todo!()
         }
+        Command::StopServer => todo!(),
     }
 }
