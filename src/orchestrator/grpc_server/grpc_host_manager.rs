@@ -1,13 +1,11 @@
-use std::{env, future::Future, pin::Pin, time::Duration};
+use std::{env, time::Duration};
 
-use futures_core::Stream;
 use tokio::{
     select,
     sync::{mpsc, watch},
 };
-use tokio_stream::{wrappers::ReceiverStream, StreamExt};
-use tokio_util::sync::CancellationToken;
-use tonic::{async_trait, transport::Server, Request, Response, Status};
+
+use tonic::{async_trait, transport::Server};
 
 use crate::{
     network_utils::wake_on_lan::{send_wol_with_timeout, MacAddr},
@@ -16,37 +14,22 @@ use crate::{
             BROADCAST_ADDRESS, GRPC_LISTEN_ADDR_ENV_NAME, HOST_MAC_ADDRESS_ENV_NAME,
             WOL_SEND_FROM_ADDRESS,
         },
-        discord_bot::discord_command_adapter::{
-            HostCommand, HostManager, ServerCommand, ServerStatus,
-        },
+        discord_bot::discord_command_adapter::{HostCommand, HostManager, ServerCommand},
     },
 };
 
 use super::controller::{controllerp::basics_server::BasicsServer, HostStatus, MyBasics};
 
-pub struct GrpcHostManager {
-    // command_reciever: mpsc::Receiver<HostCommand>,
-}
+pub struct GrpcHostManager {}
 
 impl GrpcHostManager {
-    pub fn new(// command_reciever: tokio::sync::mpsc::Receiver<
-        //     crate::orchestrator::discord_bot::discord_command_adapter::HostCommand,
-        // >,
-    ) -> Self {
+    pub fn new() -> Self {
         Self {}
     }
 }
 
 #[async_trait]
 impl HostManager for GrpcHostManager {
-    fn get_event_emmiter(
-        &self,
-    ) -> tokio::sync::mpsc::Receiver<
-        crate::orchestrator::discord_bot::discord_command_adapter::HostEvent,
-    > {
-        todo!()
-    }
-
     async fn start(
         &mut self,
         discord_command_rx: mpsc::Receiver<HostCommand>,
@@ -87,18 +70,34 @@ async fn handle_commands(
     mut host_status: watch::Receiver<HostStatus>,
 ) {
     while let Some(host_command) = discord_command_rx.recv().await {
+        println!("Handling command: {:?}", host_command);
         match host_command.server_command {
             ServerCommand::Start => {
                 if !host_status.borrow_and_update().host_is_connected() {
                     // TODO handle errors
-                    start_host(host_status.clone()).await.unwrap();
+                    let result = start_host(host_status.clone()).await;
+                    if let Err(err) = result {
+                        println!(
+                            "Error starting server {:?}: {:?}",
+                            host_command.server_id, err
+                        );
+                    }
                 }
-
                 grpc_command_tx.send(host_command).await.unwrap();
             }
-            ServerCommand::ApplyChanges(_) => todo!(),
-            ServerCommand::Stop => {}
-            ServerCommand::QueryStatus(_) => todo!(),
+            ServerCommand::ApplyChanges(_) => {
+                todo!("ApplyChanges is not yet implemented in gprc_host_manager.rs")
+            }
+            ServerCommand::Stop => {
+                todo!("Stop is not yet implemented in gprc_host_manager.rs")
+            }
+            ServerCommand::QueryStatus(server_status_sender) => {
+                let server_status = host_status
+                    .borrow()
+                    .get_server_status(host_command.server_id);
+
+                server_status_sender.send(server_status).unwrap();
+            }
         }
     }
 

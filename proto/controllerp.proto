@@ -19,8 +19,10 @@ enum SetControllerStatusRequest {
 
 enum Command {
 		StartServer = 0;
-		HeartBeat = 1;
-		RefreshServers = 2;
+		StopServer = 1;
+		HeartBeat = 2;
+		RefreshServers = 3;
+		ActivateHostAutoPowerOff = 4;
 }
 
 message ControllerCommands {

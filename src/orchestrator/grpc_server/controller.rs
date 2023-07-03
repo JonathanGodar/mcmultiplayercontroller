@@ -1,22 +1,16 @@
-use futures::{future::select, Stream};
-use std::{cell::RefCell, collections::HashMap, env, pin::Pin, sync::Arc, time::Duration};
+use futures::Stream;
+use std::{collections::HashMap, pin::Pin, sync::Arc, time::Duration};
 
 use controllerp::basics_server::Basics;
 use tokio::{
     select,
-    sync::{
-        mpsc::{self, Receiver},
-        watch, Mutex,
-    },
+    sync::{mpsc, watch, Mutex},
 };
-use tokio_stream::{
-    wrappers::{BroadcastStream, ReceiverStream},
-    StreamExt,
-};
-use tonic::{transport::Server, Request, Response, Status};
+use tokio_stream::wrappers::ReceiverStream;
+use tonic::{Request, Response, Status};
 
 use crate::orchestrator::{
-    discord_bot::discord_command_adapter::{HostCommand, ServerStatus},
+    discord_bot::discord_command_adapter::{HostCommand, ServerCommand, ServerStatus},
     grpc_server::controller::controllerp::Command,
 };
 
@@ -43,6 +37,16 @@ impl HostStatus {
     pub fn host_is_connected(&self) -> bool {
         !matches!(self, &HostStatus::Offline)
     }
+
+    pub fn get_server_status(&self, server_id: u64) -> ServerStatus {
+        match self {
+            HostStatus::Offline => ServerStatus::Stopped,
+            HostStatus::Online(servers) => servers
+                .get(&server_id)
+                .unwrap_or(&ServerStatus::Stopped)
+                .clone(),
+        }
+    }
 }
 
 impl MyBasics {
@@ -61,6 +65,7 @@ impl MyBasics {
         command_rx: Arc<Mutex<mpsc::Receiver<HostCommand>>>,
     ) {
         let tx_to_host = Arc::new(Mutex::new(tx_to_host));
+
         let heart_beat_task = {
             let tx_to_host = tx_to_host.clone();
             tokio::spawn(async move {
@@ -78,15 +83,24 @@ impl MyBasics {
             })
         };
 
-        let mut command_rx_lock = command_rx.lock().await;
+        let command_handler = async {
+            let mut command_rx_lock = command_rx.lock().await;
+            while let Some(command) = command_rx_lock.recv().await {
+                let tx = tx_to_host.lock().await;
+
+                // TODO grpc_host_manager currently handles ServerCommand::QueryStatus. Make grpc_host_manager handle all the ServerCommands and let this part of the code take some other enum.
+                match command.server_command {
+                    ServerCommand::Start => {
+                        tx.send(Ok(Command::StartServer)).await.unwrap();
+                    }
+                    _ => todo!(),
+                }
+            }
+        };
 
         select! {
-            _ = heart_beat_task => {
-                println!("---Heat beat stopped")
-            },
-            command = command_rx_lock.recv() => {
-                println!("GRPC_HOST_MANAGER: Received command: {:?}", command);
-            }
+            _ = heart_beat_task => {},
+            _ = command_handler => {}
         }
 
         println!("Exiting handle_host_connection");

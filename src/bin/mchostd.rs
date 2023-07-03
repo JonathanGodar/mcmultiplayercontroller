@@ -1,13 +1,6 @@
-use std::{
-    alloc::System,
-    env,
-    io::{BufWriter, Stdout, Write},
-    process::Stdio,
-    sync::Arc,
-    time::Duration,
-};
+use std::{process::Stdio, sync::Arc, time::Duration};
 
-use crate::controllerp::{basics_client::BasicsClient, HelloRequest};
+use crate::controllerp::basics_client::BasicsClient;
 use controllerp::{Command, ControllerCommands};
 use lazy_static::lazy_static;
 use mcmultiplayercontroller::mchost::constants::{
@@ -18,7 +11,7 @@ use regex::Regex;
 use std::sync::Mutex;
 use tokio::sync::watch;
 use tokio::{
-    io::{AsyncBufReadExt, AsyncWrite, AsyncWriteExt, BufReader},
+    io::{AsyncBufReadExt, AsyncWriteExt, BufReader},
     net::UnixListener,
     process, select,
 };
@@ -91,7 +84,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let controller_address =
         std::env::var(CONTROLLER_ADDRESS_ENV_NAME).expect("controller_address env var must be set");
-    // TODO tokio::spawn(handle_command);
+
     let mut client = BasicsClient::connect(controller_address.clone())
         .await
         .map_err(|e| {
@@ -247,9 +240,17 @@ async fn handle_command(
     controller_command: ControllerCommands,
     auto_shutdown: watch::Receiver<bool>,
 ) {
+    println!(
+        "Receieved command: {:?}",
+        Command::from_i32(controller_command.command)
+    );
+
     match Command::from_i32(controller_command.command).unwrap() {
         Command::StartServer => {
             handle_start_server(auto_shutdown).await;
+        }
+        Command::ActivateHostAutoPowerOff => {
+            todo!();
         }
         Command::HeartBeat => {}
         Command::RefreshServers => {

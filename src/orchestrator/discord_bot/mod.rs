@@ -1,5 +1,3 @@
-use std::pin::Pin;
-
 use serenity::{
     async_trait,
     model::{
@@ -9,10 +7,7 @@ use serenity::{
     prelude::*,
     Client,
 };
-use tokio::{
-    select,
-    sync::{broadcast, mpsc},
-};
+use tokio::{select, sync::mpsc};
 
 use crate::orchestrator::{constants::GUILD_ID_ENV_NAME, discord_bot::commands::start_server};
 
@@ -27,14 +22,12 @@ pub async fn start_discord_bot<T: HostManager + 'static>(mut host_manager: T) {
     let token =
         std::env::var(DISCORD_TOKEN_ENV_NAME).expect("You have to provide a discord bot key");
 
-    let (tx, mut rx) = mpsc::channel(255);
+    let (tx, rx) = mpsc::channel(255);
 
     let mut discord_client = Client::builder(token, GatewayIntents::non_privileged())
         .event_handler(Handler { command_sender: tx })
         .await
         .expect("Error creating discord client");
-
-    println!("Starting dicord client");
 
     select! {
         val = discord_client.start() => {
@@ -64,12 +57,15 @@ struct Handler {
 impl EventHandler for Handler {
     async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
         if let Interaction::ApplicationCommand(command) = interaction {
-            println!("recieved command interaction");
             let content = match command.data.name.as_str() {
                 "start_server" => {
+                    println!("Discord Client recieved start command");
                     start_server::run(&command.data.options, self.command_sender.clone()).await
                 }
-                "server_status" => commands::server_status::run(&command.data.options).await,
+                "server_status" => {
+                    commands::server_status::run(&command.data.options, self.command_sender.clone())
+                        .await
+                }
                 _ => String::from("not implemented :/"),
             };
 

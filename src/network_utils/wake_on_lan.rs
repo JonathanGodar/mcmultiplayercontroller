@@ -26,6 +26,7 @@ pub async fn send_wol_with_timeout<T: 'static + ToSocketAddrs + Send + Sync + Cl
             loop {
                 _ = tokio::time::sleep(Duration::from_millis(100)).await;
 
+                println!("Sending wol req");
                 if let Err(err) = send_wol_request(mac_addr, from.clone(), to.clone()).await {
                     return err;
                 };
@@ -82,43 +83,13 @@ pub async fn send_wol_request<T: ToSocketAddrs>(
     }
 
     let socket = UdpSocket::bind(from).await.unwrap();
+
+    socket.set_broadcast(true).unwrap();
+
     let send_result = socket.send_to(&magic_packet_content, to).await;
     assert!(matches!(send_result, Ok(102)));
-
     Ok(())
 }
-
-// pub async fn try_until_with_timeout(
-//     mac_addr: MacAddr,
-//     condition: impl Fn() -> bool,
-//     timeout: Duration,
-// ) -> Result<(), ()> {
-//     send(mac_addr).await.unwrap();
-//     let mut timeout = sleep(timeout).boxed();
-//     while !condition() {
-//         let retry_in = sleep(Duration::from_secs(1));
-//         select! {
-//             _ = retry_in => {
-//                 send(mac_addr).await.unwrap();
-//             }
-//             _ = &mut timeout => {
-//                 return Err(());
-//             }
-//         }
-//     }
-
-//     Ok(())
-// }
-
-// )?;
-// pub async fn send(mac_addr: MacAddr) -> Result<(), Box<dyn std::error::Error>> {
-// println!("sending packet :D");
-// // TODO make async
-// wake_on_lan::MagicPacket::new(&mac_addr.0).send_to(
-//     env::var("broadcast_address").unwrap(),
-//     env::var("local_wol_send_address").unwrap(),
-// Ok(())
-// }
 
 impl From<&str> for MacAddr {
     fn from(value: &str) -> MacAddr {

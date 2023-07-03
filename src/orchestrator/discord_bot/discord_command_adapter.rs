@@ -31,7 +31,7 @@ pub enum ServerEvent {
     StatusChange(ServerStatus),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum ServerStatus {
     Starting,
     Running,
@@ -45,6 +45,4 @@ pub trait HostManager: Send + Sync {
         &mut self,
         command_receiver: mpsc::Receiver<HostCommand>,
     ) -> Result<(), &'static str>;
-
-    fn get_event_emmiter(&self) -> tokio::sync::mpsc::Receiver<HostEvent>;
 }
