@@ -32,6 +32,8 @@ package(){
 		install -Dm0755 "${srcdir}/mcmultiplayercontroller-${pkgver}/target/release/${pkgname}d" "${pkgdir}/usr/bin/${pkgname}"
 
 		install -Dm0666 "${srcdir}/mcmultiplayercontroller-${pkgver}/res/mchostd.service" "${pkgdir}/etc/systemd/system/${pkgname}d.service"
+		
+		# mkpkg -Dm0
 
 		# install -Dm0644 "${srcdir}/mcmultiplayercontroller-${pkgver}/${pkgname}d.service" "${pkgdir}/etc/systemd/user/${pkgname}d.service"
 }

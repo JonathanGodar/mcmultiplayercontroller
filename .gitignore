@@ -1,2 +1,5 @@
 /target
 .env
+/install-scripts/pkg/
+/install-scripts/src/
+/install-scripts/mchost-*

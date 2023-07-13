@@ -30,7 +30,7 @@ pub struct MyBasics {
 #[derive(Debug)]
 pub enum HostStatus {
     Offline,
-    Online(HashMap<u64, ServerStatus>), // RunningServers(Vec<u64>),
+    Online(HashMap<u64, ServerStatus>),
 }
 
 impl HostStatus {
