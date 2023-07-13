@@ -3,13 +3,12 @@
 This was a project intended for my friends to be able to start my minecraft server. It also served as a way for me to learn async Rust and gRPC.
 The programme is built so that a less powerhungry computer can recieve server start commands and then start up a more powerfull host that can run a minecraft server.
 
-For this small personal project bugs were acceptable and the project just needed to be done as soon as possible, since I was going away for a while and would not be able to finish the project for a couple of weeks. Thus the code is not refactored and the code is, at some places horribly nested to be able to not worry about fighting the borrow checker.
+The rust language was chosen since I wanted to become better at the language and wanted the program to have a small memory- and cpu footprint.
 
 ## Structure
-The project contains three subprogrammes:
-* discord_bot - Is used for the end user to input commands, eg. "/start_server"
-* mchostd - Is the daemon that recieves commands from the discord_bot via gRPC.
-* mchost - Is used to configure the daemon.
+The project two subprogrammes:
+* orchestrator - Is used for the end user to input commands, eg. "/start_server". This program is also responsible for starting the host (via wake-on-lan) which runs the mchostd program.
+* mchostd - Is ran on the host which should start and manage the minecraft servers. Recieves commands from the orchestrator.
 
 ## Environment variables
 Environment variables are loaded in from a .env file in the root of the project. Environment variables that are set before running the program take precedence over variables set in the .env file.
@@ -19,29 +18,24 @@ Contains both a gRPC server for sending commands to the minecraft server host an
 
 ## Running
 ```bash
-$ cargo run --bin discord_bot 
+$ cargo run --bin orchestrator 
 ```
 
 ### Environment variables
-```.env
-discord_token
-guild_id # The guild where the bot will register and listen for commands
-wol_mac # The mac addres of the host computers eth device, used for triggering a Wake On Lan when the server should start
-listen_address # Which address the gPRC server should bind to
-```
+The available environment variables are written in orchestrator/constants.rs
 
 ## mchostd
-When started it tries to connect to the gRPC server of the discord bot.
+When started it tries to connect to the gRPC server of the orchestrator.
 
-It will automatically stop the server if no one has been on the server for 30s.
+Features:
+* Starts/stops minecraft servers
+* Automatically stops minecraft servers when all players leave
+* Automatically shutsdown the computer which the program is running on when all minecraft servers have stopped and no one is using the computer 
+* Create minecraft servers
+* Aware of different versions of minecraft server software
+
 ### Installation
-mchost and mchostd can be installed via an arch PKGBUILD, however the mchostd currently does not load config files from a specific directory. So unless you want to have a .env file in /usr/bin you have to modify the file /etc/systemd/system/mchostd.service and add your environment variables in the `Environment=""` part of the service.
-
-The package build does not list dependencies so you have to make sure you have rust and git installed on your system.
-```bash
-$ cd ./install-scripts
-$ makepkg -i
-```
+You have to create your own systemd service and move the binary to the correct place 
 
 ### Running
 ```bash
@@ -49,12 +43,4 @@ $ cargo run --bin mchostd
 ```
 
 ### Environment variables
-```.env
-controller_address # The address of the discord_bot gRPC server, eg. http://192.168.1.223:50051
-broadcast_address # The address to broadcast the WOL packet on, eg. 255.255.255.255:9
-local_wol_send_address # The address WOL packets are sent from, eg. 192.168.1.223:0
-```
-
-## mchost
-CLI util to set settings in the mchostd. Currently requires the dameon to be active. Settings set are not persistent. Use `mchost help` to se command options. 
-
+Found user mchost/constants
