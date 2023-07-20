@@ -1,7 +1,7 @@
 # McMultiplayerController
 ## Description
 This was a project intended for my friends to be able to start my minecraft server. It also served as a way for me to learn async Rust and gRPC.
-The programme is built so that a less powerhungry computer can recieve server start commands and then start up a more powerfull host that can run a minecraft server.
+The program is built so that a less powerhungry computer can recieve server start commands and then start up a more powerful host that can run a minecraft server.
 
 The rust language was chosen since I wanted to become better at the language and wanted the program to have a small memory- and cpu footprint.
 
